@@ -21,6 +21,7 @@ const form = document.getElementById('quiz');
 const container = document.getElementById('quiz-questions');
 const results = document.getElementById('quiz-results');
 document.getElementById('year').textContent = new Date().getFullYear();
+if (form && container && results) {
 questions.forEach((question, index) => {
   const fieldset = document.createElement('fieldset');
   const legend = document.createElement('legend');
@@ -85,3 +86,5 @@ form.addEventListener('reset', () => {
   results.hidden = true; results.replaceChildren();
   form.querySelector('input').focus();
 });
+
+}
