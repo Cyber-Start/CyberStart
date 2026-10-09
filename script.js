@@ -42,11 +42,8 @@ const nextButton = document.getElementById('quiz-next');
 const backButton = document.getElementById('quiz-back');
 const submitButton = document.getElementById('quiz-submit');
 function showStep(focus = false) {
-  fields.forEach((field, index) => {
-    const active = Math.floor(index / pageSize) === currentStep;
-    field.hidden = !active;
-    field.disabled = !active;
-  });
+  const activeFields = fields.slice(currentStep * pageSize, (currentStep + 1) * pageSize);
+  container.replaceChildren(...activeFields);
   const start = currentStep * pageSize + 1;
   document.getElementById('quiz-progress').textContent = `Step ${currentStep + 1} of ${Math.ceil(questions.length / pageSize)} · Questions ${start}–${Math.min(start + 1, questions.length)} of ${questions.length}`;
   backButton.hidden = currentStep === 0;
@@ -81,7 +78,7 @@ function addText(parent, tag, content, className) {
 form.addEventListener('submit', event => {
   event.preventDefault();
   if (!form.reportValidity()) return;
-  const answers = questions.map((_, i) => form.querySelector(`input[name="q${i}"]:checked`)?.value);
+  const answers = fields.map(field => field.querySelector('input:checked')?.value);
   if (answers.some(answer => answer === undefined)) return;
   const assessment = assess(answers);
   results.replaceChildren();
@@ -112,6 +109,7 @@ form.addEventListener('submit', event => {
 });
 form.addEventListener('reset', () => {
   results.hidden = true; results.replaceChildren();
+  fields.forEach(field => field.querySelectorAll('input').forEach(input => { input.checked = false; }));
   currentStep = 0;
   showStep();
   form.querySelector('input').focus();
