@@ -35,6 +35,33 @@ questions.forEach((question, index) => {
   });
   container.append(fieldset);
 });
+let currentStep = 0;
+const pageSize = 2;
+const fields = Array.from(container.querySelectorAll('fieldset'));
+const nextButton = document.getElementById('quiz-next');
+const backButton = document.getElementById('quiz-back');
+const submitButton = document.getElementById('quiz-submit');
+function showStep(focus = false) {
+  fields.forEach((field, index) => {
+    const active = Math.floor(index / pageSize) === currentStep;
+    field.hidden = !active;
+    field.disabled = !active;
+  });
+  const start = currentStep * pageSize + 1;
+  document.getElementById('quiz-progress').textContent = `Step ${currentStep + 1} of ${Math.ceil(questions.length / pageSize)} · Questions ${start}–${Math.min(start + 1, questions.length)} of ${questions.length}`;
+  backButton.hidden = currentStep === 0;
+  nextButton.hidden = currentStep === Math.ceil(questions.length / pageSize) - 1;
+  submitButton.hidden = !nextButton.hidden;
+  if (focus) container.focus();
+}
+nextButton.addEventListener('click', () => {
+  if (!form.reportValidity()) return;
+  currentStep++; showStep(true);
+});
+backButton.addEventListener('click', () => {
+  currentStep--; showStep(true);
+});
+showStep();
 function assess(answers) {
   const stats = Object.fromEntries(Object.keys(topics).map(key => [key, {correct:0, total:0}]));
   let score = 0;
@@ -54,8 +81,9 @@ function addText(parent, tag, content, className) {
 form.addEventListener('submit', event => {
   event.preventDefault();
   if (!form.reportValidity()) return;
-  const data = new FormData(form);
-  const assessment = assess(questions.map((_, i) => data.get(`q${i}`)));
+  const answers = questions.map((_, i) => form.querySelector(`input[name="q${i}"]:checked`)?.value);
+  if (answers.some(answer => answer === undefined)) return;
+  const assessment = assess(answers);
   results.replaceChildren();
   addText(results, 'h3', 'Your learning snapshot');
   addText(results, 'p', `${assessment.score} / ${questions.length} correct`, 'result-score');
@@ -84,7 +112,34 @@ form.addEventListener('submit', event => {
 });
 form.addEventListener('reset', () => {
   results.hidden = true; results.replaceChildren();
+  currentStep = 0;
+  showStep();
   form.querySelector('input').focus();
 });
 
 }
+
+document.querySelectorAll('.faq details').forEach(detail => {
+  const summary = detail.querySelector('summary');
+  let animation;
+  summary.setAttribute('aria-expanded', String(detail.open));
+  summary.addEventListener('click', event => {
+    event.preventDefault();
+    if (animation) return;
+    const opening = !detail.open;
+    const start = detail.getBoundingClientRect().height;
+    if (opening) detail.open = true;
+    const end = opening ? detail.getBoundingClientRect().height : summary.getBoundingClientRect().height + 40;
+    summary.setAttribute('aria-expanded', String(opening));
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !detail.animate) {
+      detail.open = opening; return;
+    }
+    detail.style.overflow = 'hidden';
+    animation = detail.animate([{height: start + 'px'}, {height: end + 'px'}], {duration: 260, easing: 'ease-in-out'});
+    animation.onfinish = () => {
+      detail.open = opening;
+      detail.style.overflow = '';
+      animation = null;
+    };
+  });
+});
